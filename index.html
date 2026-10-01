@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="my">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Movies Recaps Tool</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0b0d12;color:#f5f7fb;font-family:system-ui,-apple-system,"Noto Sans Myanmar",sans-serif}
+.wrap{max-width:1100px;margin:auto;padding:28px 18px}.hero{padding:25px 0 18px}.hero h1{margin:0;font-size:32px}.hero p{color:#9da5b5}.card{background:#121620;border:1px solid #252b38;border-radius:18px;padding:20px;margin:14px 0}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.field label{display:block;font-size:14px;color:#b9c0ce;margin-bottom:8px}.select,.input{width:100%;background:#0c1017;color:white;border:1px solid #303746;border-radius:10px;padding:12px}.drop{border:1.5px dashed #465064;border-radius:14px;padding:28px;text-align:center;cursor:pointer;background:#0d1118}.drop:hover{border-color:#8b5cf6}.row{display:flex;gap:9px;flex-wrap:wrap}.chip{border:1px solid #353d4d;background:#0c1017;color:#dce1ea;padding:9px 13px;border-radius:10px;cursor:pointer}.chip.active{border-color:#8b5cf6;background:#251941;color:white}.btn{border:0;border-radius:11px;padding:12px 17px;font-weight:700;cursor:pointer}.primary{background:#8b5cf6;color:#fff}.secondary{background:#222938;color:#fff}.progress{height:9px;background:#242a36;border-radius:99px;overflow:hidden;margin-top:12px}.bar{height:100%;width:0;background:#8b5cf6;transition:.3s}.status{color:#aeb6c5;font-size:14px;margin-top:8px}.output{white-space:pre-wrap;background:#0a0e14;border-radius:12px;padding:14px;min-height:100px;color:#dfe5ef}.hidden{display:none}.check{display:flex;align-items:center;gap:9px}.footer{text-align:center;color:#697284;font-size:12px;padding:20px}
+@media(max-width:720px){.grid{grid-template-columns:1fr}.hero h1{font-size:26px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<section class="hero">
+<h1>🎬 Movies Recaps Tool</h1>
+<p>Video → Gemini Recap Script → Edge TTS → Auto Subtitle → Audio/Video Sync → Export</p>
+</section>
+
+<div class="card">
+<h2>1. Video Upload</h2>
+<div id="drop" class="drop">📤 <b>Video ဖိုင်ရွေးပါ</b><br><small>10 မိနစ်အောက် Video ကိုရွေးပါ</small>
+<input id="video" type="file" accept="video/*" hidden></div>
+<div class="progress"><div id="bar" class="bar"></div></div><div id="status" class="status">Video မရွေးရသေးပါ</div>
+</div>
+
+<div class="card">
+<h2>2. AI Recap & Voice</h2>
+<div class="grid">
+<div class="field"><label>Gemini Script Language</label><input class="input" value="မြန်မာဘာသာ" disabled></div>
+<div class="field"><label>Microsoft Edge TTS Voice</label><select id="voice" class="select"><option>Thiha</option><option>Nilar</option></select></div>
+<div class="field"><label>Voice Character (preset)</label><select id="preset" class="select">
+<option>Normal (Default)</option><option>Little Girl</option><option>Teenager Girl</option><option>Cute & Sweet</option><option>Fast & Energetic</option><option>Slow & Calm</option>
+</select></div>
+<div class="field"><label>Output Ratio</label><div class="row" id="ratios"><button class="chip active">16:9</button><button class="chip">9:16</button><button class="chip">1:1</button></div></div>
+</div>
+<button id="scriptBtn" class="btn primary" style="margin-top:16px">🤖 Generate Burmese Recap Script</button>
+<div id="script" class="output" style="margin-top:12px">AI Script မထုတ်ရသေးပါ</div>
+</div>
+
+<div class="card">
+<h2>3. Logo & Text Blur</h2>
+<div class="grid">
+<div><label>Logo Upload</label><input id="logo" class="input" type="file" accept="image/*"></div>
+<div class="field"><label>Logo Size</label><select class="select"><option>Small</option><option>Medium</option></select></div>
+<div class="field"><label>Logo Style</label><select class="select"><option>Circle</option></select></div>
+<div class="field"><label>Blur Text / Subtitles in Source Video</label><select class="select"><option>OFF</option><option>ON — Auto Detect</option></select></div>
+</div>
+</div>
+
+<div class="card">
+<h2>4. Auto Subtitles & Sync</h2>
+<label class="check"><input id="subs" type="checkbox" checked> မြန်မာ Auto Subtitles ထည့်မယ်</label>
+<label class="check" style="margin-top:10px"><input id="sync" type="checkbox" checked> အသံနဲ့ Video ရုပ် Auto Sync လုပ်မယ်</label>
+<p class="status">Scene timing, narration timing နဲ့ subtitle timing ကို အလိုအလျောက်ညှိရန်အတွက် ထည့်ထားပါတယ်။</p>
+<button id="export" class="btn primary" style="margin-top:14px">🎞️ Build & Export Video</button>
+<div id="exportStatus" class="status"></div>
+</div>
+
+<div class="footer">Movies Recaps Tool — Prototype UI</div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+$("drop").onclick=()=>$("video").click();
+$("video").onchange=()=>{
+ const f=$("video").files[0]; if(!f)return;
+ const v=document.createElement("video"); v.preload="metadata"; v.src=URL.createObjectURL(f);
+ v.onloadedmetadata=()=>{
+   const m=Math.floor(v.duration/60), s=Math.floor(v.duration%60);
+   if(v.duration>600){$("status").textContent="❌ Video က 10 မိနစ်ကျော်နေပါတယ်";$("bar").style.width="0";return}
+   $("status").textContent=`✅ ${f.name} — ${m}:${String(s).padStart(2,"0")} — Ready`;
+   $("bar").style.width="100%";
+ };
+};
+document.querySelectorAll("#ratios .chip").forEach(b=>b.onclick=()=>{
+ document.querySelectorAll("#ratios .chip").forEach(x=>x.classList.remove("active"));b.classList.add("active");
+});
+$("scriptBtn").onclick=()=>{
+ const f=$("video").files[0];
+ if(!f){$("script").textContent="အရင်ဆုံး Video Upload လုပ်ပါ။";return}
+ $("script").textContent="⏳ Gemini AI က Video ကို Analyze လုပ်ပြီး မြန်မာ Movie Recap Script ထုတ်နေပါတယ်...";
+ setTimeout(()=>{$("script").textContent="ဒီနေရာမှာ Gemini API ချိတ်ဆက်ပြီး Video Analysis မှရရှိတဲ့ အဖြစ်အပျက်တွေကို သဘာဝကျတဲ့ မြန်မာ Movie Recap Narration Script အဖြစ် ထုတ်ပေးပါမယ်။\\n\\n[Backend/API connection required for real generation]";},1200);
+};
+$("export").onclick=()=>{
+ $("exportStatus").textContent="⏳ Build pipeline ကို စတင်ပါမယ် — Gemini → Edge TTS → Subtitle → Audio/Video Sync → Logo → Export";
+ setTimeout(()=>{$("exportStatus").textContent="ℹ️ ဒီ Downloadable prototype မှာ UI နဲ့ validation workflow ပါပြီး real Gemini/Edge TTS/FFmpeg processing အတွက် server/API keys ချိတ်ဆက်ရန် လိုအပ်ပါတယ်။";},900);
+};
+</script>
+</body>
+</html>
